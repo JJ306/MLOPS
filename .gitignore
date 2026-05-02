@@ -216,3 +216,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+
+installation_guide_k8s_cluster/cloud_installation_README.md
