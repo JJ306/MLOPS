@@ -1,6 +1,5 @@
 [core]
     autostage = True
-[remote "local"]
-    url = ./data/
-[core]
     remote = local
+['remote "local"']
+    url = data
