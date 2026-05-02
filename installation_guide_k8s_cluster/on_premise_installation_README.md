@@ -1,3 +1,4 @@
+# note: there might be the error due to different system
 # Kubernetes Tools Setup on WSL2 Ubuntu
 
 Complete guide for installing Kubernetes CLI tools and Minikube cluster on WSL2 Ubuntu with Docker Desktop backend.
