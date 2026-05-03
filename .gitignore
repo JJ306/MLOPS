@@ -225,3 +225,16 @@ __marimo__/
 installation_guide_k8s_cluster/cloud_installation_README.md
 mlops_venv/
 .gitignore/
+
+
+.github/
+.gitlab/
+.git/
+.gitignore
+config core.remote local.dvc
+data/raw/*.csv
+
+mlops-predictive-maintenance/src/data/download_data.py
+
+
+mlops-predictive-maintenance/README.md
