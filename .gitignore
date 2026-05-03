@@ -234,7 +234,7 @@ mlops_venv/
 config core.remote local.dvc
 data/raw/*.csv
 
-mlops-predictive-maintenance/src/data/download_data.py
 
+mlops-predictive-maintenance/src/data/download_data.py
 
 mlops-predictive-maintenance/README.md
