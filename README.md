@@ -1,7 +1,7 @@
 # Predictive Maintenance MLOps Pipeline
 
 ## Business Problem
-Predict jet engine failures 30 days in advance using sensor telemetry data.
+Predict jet engine failures 30 days in advance using sensor data.
 
 ## Tech Stack
 - **Infrastructure**: Minikube (local K8s) + Docker
