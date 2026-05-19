@@ -1,12 +1,14 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-from typing import List
+import logging
+import time
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
+from typing import List
+
 import joblib
 import numpy as np
-import logging
-from pathlib import Path
-from datetime import datetime
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,7 +38,9 @@ async def lifespan(app: FastAPI):
         scaler = joblib.load(scaler_path)
         logger.info("✅ Model and scaler loaded")
         # model.n_features_in_ should be 144
-        logger.info(f"   Model expects {getattr(model, 'n_features_in_', 'unknown')} features")
+        logger.info(
+            f"   Model expects {getattr(model, 'n_features_in_', 'unknown')} features"
+        )
 
     yield  # nothing to clean up on shutdown
 
@@ -79,11 +83,39 @@ class TimeSeriesData(BaseModel):
             "example": {
                 "data": [
                     # 24 points – shortened here; docs will show full example
-                    {"temperature": 50, "pressure": 100, "vibration": 5, "rpm": 3000, "torque": 50, "fuel_flow": 200},
-                    {"temperature": 51, "pressure": 101, "vibration": 5.2, "rpm": 3010, "torque": 51, "fuel_flow": 201},
+                    {
+                        "temperature": 50,
+                        "pressure": 100,
+                        "vibration": 5,
+                        "rpm": 3000,
+                        "torque": 50,
+                        "fuel_flow": 200,
+                    },
+                    {
+                        "temperature": 51,
+                        "pressure": 101,
+                        "vibration": 5.2,
+                        "rpm": 3010,
+                        "torque": 51,
+                        "fuel_flow": 201,
+                    },
                     # ...
-                    {"temperature": 56, "pressure": 106, "vibration": 5.2, "rpm": 3170, "torque": 53.5, "fuel_flow": 217},
-                    {"temperature": 56.5, "pressure": 106.5, "vibration": 5.3, "rpm": 3180, "torque": 53.7, "fuel_flow": 218},
+                    {
+                        "temperature": 56,
+                        "pressure": 106,
+                        "vibration": 5.2,
+                        "rpm": 3170,
+                        "torque": 53.5,
+                        "fuel_flow": 217,
+                    },
+                    {
+                        "temperature": 56.5,
+                        "pressure": 106.5,
+                        "vibration": 5.3,
+                        "rpm": 3180,
+                        "torque": 53.7,
+                        "fuel_flow": 218,
+                    },
                 ]
             }
         }
@@ -128,6 +160,7 @@ def predict_failure(payload: TimeSeriesData):
     You MUST send exactly 24 consecutive readings (seq_length)
     with 6 features each.
     """
+    start = time.time()
     try:
         if model is None or scaler is None:
             raise HTTPException(
@@ -161,23 +194,32 @@ def predict_failure(payload: TimeSeriesData):
         # Scale each row like in train.py
         # train.py did: X_flat = X.reshape(-1, 6); scaler.fit_transform(X_flat); X_scaled.reshape(...)
         # At inference: we mimic that: flatten to (24, 6), scale, then reshape back (24, 6)
-        X_flat = X.reshape(-1, X.shape[-1])       # (24, 6)
+        X_flat = X.reshape(-1, X.shape[-1])  # (24, 6)
         X_scaled_flat = scaler.transform(X_flat)  # (24, 6)
-        X_scaled = X_scaled_flat.reshape(X.shape) # (24, 6) again
+        X_scaled = X_scaled_flat.reshape(X.shape)  # (24, 6) again
 
         # Now flatten to 2D for RandomForest, like in evaluate_model()
         X_for_model = X_scaled.reshape(1, -1)  # (1, 144)
 
-        if X_for_model.shape[1] != getattr(model, "n_features_in_", X_for_model.shape[1]):
+        if X_for_model.shape[1] != getattr(
+            model, "n_features_in_", X_for_model.shape[1]
+        ):
             raise HTTPException(
                 status_code=500,
                 detail=f"Feature mismatch: model expects {getattr(model, 'n_features_in_', 'unknown')} "
-                       f"features, but got {X_for_model.shape[1]}",
+                f"features, but got {X_for_model.shape[1]}",
             )
 
         # Predict
         pred = model.predict(X_for_model)[0]
         proba = model.predict_proba(X_for_model)[0][1]
+
+        logger.info(
+            "prediction=%s proba=%.3f latency_ms=%.1f",
+            int(pred),
+            float(proba),
+            (time.time() - start) * 1000,
+        )
 
         return PredictionResponse(
             prediction=int(pred),
@@ -198,8 +240,7 @@ def predict_failure(payload: TimeSeriesData):
 if __name__ == "__main__":
     import uvicorn
 
-    print(
-        f"""
+    print(f"""
 ╔═══════════════════════════════════════════════════════════╗
 ║   🚀 Predictive Maintenance API                          ║
 ║                                                           ║
@@ -211,7 +252,6 @@ if __name__ == "__main__":
 ║   Health: http://localhost:8000/health                    ║
 ║   Predict: POST /predict                                  ║
 ╚═══════════════════════════════════════════════════════════╝
-"""
-    )
+""")
 
     uvicorn.run(app, host="0.0.0.0", port=8000)

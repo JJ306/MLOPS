@@ -21,7 +21,7 @@ minikube start --cpus=4 --memory=8192
 # 3. Run training
 python src/model/train.py
 
-# 4. Start MLflow
+# 4. Start MLflow for local setup
 mlflow ui --host 0.0.0.0 --port 5000
 ```
 
