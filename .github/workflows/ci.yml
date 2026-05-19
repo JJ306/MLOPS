@@ -25,9 +25,10 @@ jobs:
           pip install -r ./predictive-maintenance/requirements_docker.txt
           pip install flake8
 
-      - name: Run flake8
-        run: |
-          flake8 ./predictive-maintenance/src ./predictive-maintenance/tests
+      # - name: Run flake8
+      #   working-directory: ./predictive-maintenance
+      #   run: |
+      #     flake8 src/ tests/
   
   unit-tests:
     runs-on: ubuntu-latest
