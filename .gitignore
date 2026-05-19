@@ -226,13 +226,16 @@ installation_guide_k8s_cluster/cloud_installation_README.md
 mlops_v/
 .gitignore/
 
-
+.dvc/cache
+.dvc/tmp
 .github/
 .gitlab/
 .git/
 .gitignore
 config core.remote local.dvc
 data/raw/*.csv
+models/
+
 
 
 mlops-predictive-maintenance/src/data/download_data.py
