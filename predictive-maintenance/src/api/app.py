@@ -7,6 +7,7 @@ import numpy as np
 import logging
 from pathlib import Path
 from datetime import datetime
+import time
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -178,7 +179,12 @@ def predict_failure(payload: TimeSeriesData):
         # Predict
         pred = model.predict(X_for_model)[0]
         proba = model.predict_proba(X_for_model)[0][1]
-
+        
+        logger.info(
+                    "prediction=%s proba=%.3f latency_ms=%.1f",
+                    int(pred), float(proba), (time.time() - start) * 1000
+                )
+        
         return PredictionResponse(
             prediction=int(pred),
             probability=float(proba),
