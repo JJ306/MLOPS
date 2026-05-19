@@ -27,7 +27,7 @@ jobs:
 
       - name: Run flake8
         run: |
-          flake8 src/ tests
+          flake8 ./predictive-maintenance/src/ tests
   
   unit-tests:
     runs-on: ubuntu-latest
