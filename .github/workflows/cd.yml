@@ -1,0 +1,41 @@
+name: CD (Minikube - manual deploy)
+
+on:
+  push:
+    branches: [ main ]   # runs after merge into main
+
+jobs:
+  prepare-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: meta
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/predictive-maintenance-api:${{ github.sha }}"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+
+      - name: Show deploy instructions for local Minikube
+        run: |
+          echo "CD triggered for commit: ${{ github.sha }}"
+          echo
+          echo "The Docker image built by CI is:"
+          echo "  ${{ steps.meta.outputs.image }}"
+          echo
+          echo "To deploy this image to your LOCAL Minikube cluster (on Windows/WSL):"
+          echo
+          echo "1) Edit k8s/deployment.yaml and set:"
+          echo "     image: ${{ steps.meta.outputs.image }}"
+          echo
+          echo "2) Apply the manifests:"
+          echo "   kubectl apply -f k8s/deployment.yaml"
+          echo "   kubectl apply -f k8s/service.yaml"
+          echo
+          echo "3) Verify and access the service:"
+          echo "   kubectl get pods"
+          echo "   minikube service predictive-maintenance-service --url"
+          echo
+          echo "This workflow intentionally DOES NOT talk to your local Minikube,"
+          echo "because it is not reachable from GitHub runners."
