@@ -16,10 +16,14 @@ spec:
     spec:
       containers:
         - name: api
-          image: predictive-maintenance-api:latest
+          image: docker.io/30062907/predictive-maintenance-api:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
+          env:
+            # Example: set environment vars if needed, only if needed, this is just a dummy example
+            - name: ENV
+              value: "production"
           readinessProbe:
             httpGet:
               path: /health
