@@ -75,7 +75,7 @@ jobs:
       - name: Set image tag for this commit
         id: meta
         run: |
-          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/predictive-maintenance-api:${{ github.sha }}"
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/predictive-maintenance-api:latest"
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
           echo "Using image: ${IMAGE}"
 
