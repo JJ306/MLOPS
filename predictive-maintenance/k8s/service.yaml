@@ -2,10 +2,13 @@ apiVersion: v1
 kind: Service
 metadata:
   name: predictive-maintenance-service
+  labels:
+    app: predictive-maintenance
 spec:
   selector:
     app: predictive-maintenance
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 8000
-  type: NodePort
+  type: LoadBalancer #NodePort  #type: LoadBalancer will be mapped by minikube/EKS service

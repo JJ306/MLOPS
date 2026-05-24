@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, feature/predictive_maintenance ]
+    branches: [ feature/predictive_maintenance ]
   
   # pull_request:
   #   branches: [ main ]

@@ -1,41 +1,100 @@
-name: CD (Minikube - manual deploy)
+name: CD
 
 on:
   push:
-    branches: [ main ]   # runs after merge into main
+    branches: [ main ]   # runs when you merge into main
 
 jobs:
-  prepare-deploy:
-    runs-on: ubuntu-latest
-
+  deploy-minikube:
+    name: Deploy to Minikube (local)
+    # run on my self-hosted runner that has kubectl + access to Minikube
+    runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - name: Compute image tag
+      - name: Set KUBECONFIG / context for Minikube
+        run: |
+          echo "Using current kubeconfig for Minikube"
+          kubectl config use-context minikube
+          kubectl config current-context
+
+      - name: Set image tag for this commit
         id: meta
         run: |
           IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/predictive-maintenance-api:${{ github.sha }}"
           echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using image: ${IMAGE}"
 
-      - name: Show deploy instructions for local Minikube
+      - name: Patch deployment image
+        working-directory: ./predictive-maintenance
         run: |
-          echo "CD triggered for commit: ${{ github.sha }}"
-          echo
-          echo "The Docker image built by CI is:"
-          echo "  ${{ steps.meta.outputs.image }}"
-          echo
-          echo "To deploy this image to your LOCAL Minikube cluster (on Windows/WSL):"
-          echo
-          echo "1) Edit k8s/deployment.yaml and set:"
-          echo "     image: ${{ steps.meta.outputs.image }}"
-          echo
-          echo "2) Apply the manifests:"
-          echo "   kubectl apply -f k8s/deployment.yaml"
-          echo "   kubectl apply -f k8s/service.yaml"
-          echo
-          echo "3) Verify and access the service:"
-          echo "   kubectl get pods"
-          echo "   minikube service predictive-maintenance-service --url"
-          echo
-          echo "This workflow intentionally DOES NOT talk to your local Minikube,"
-          echo "because it is not reachable from GitHub runners."
+          echo "Patching k8s/deployment.yaml for Minikube deployment..."
+          # Use yq if available; if not, we can use envsubst or sed.
+          # Simple sed-based image patch (requires image line with 'image:'):
+          sed -i "s|image: .*predictive-maintenance-api.*|image: ${{ steps.meta.outputs.image }}|g" k8s/deployment.yaml
+          echo "Resulting deployment.yaml:"
+          cat k8s/deployment.yaml
+
+      - name: Apply manifests to Minikube
+        working-directory: ./predictive-maintenance
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Wait for rollout on Minikube
+        run: |
+          kubectl rollout status deployment/predictive-maintenance-api --timeout=180s
+          kubectl get pods -l app=predictive-maintenance -o wide
+          kubectl get svc predictive-maintenance-service
+
+  # Optional: add a separate job for EKS deployment, which can run after Minikube success or in parallel
+  # this is just a test to show how we can deploy to both environments from the same workflow
+  # in future we can use AWS CLI to trigger EKS deployment on AWS cloud instead of running it from the same self-hosted runner
+  deploy-eks:
+    name: Deploy to FLOCi EKS
+    runs-on: self-hosted
+    needs: deploy-minikube   # optional: deploy to EKS only after Minikube success
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Configure kubeconfig for EKS
+        run: |
+          # Option A: kubeconfig is already on this machine (WSL) and has a context like 'default' is currently for floci EKS cluster. 
+          # check k8s cluster: kubectl config get-contexts
+          # Just switch context:
+          kubectl config use-context default
+          kubectl config current-context
+
+          # Option B (if needed): uncomment and use a KUBECONFIG_DATA secret
+          # mkdir -p $HOME/.kube
+          # echo "${{ secrets.EKS_KUBECONFIG_DATA }}" | base64 -d > $HOME/.kube/config
+          # chmod 600 $HOME/.kube/config
+
+      - name: Set image tag for this commit
+        id: meta
+        run: |
+          IMAGE="${{ secrets.DOCKERHUB_USERNAME }}/predictive-maintenance-api:${{ github.sha }}"
+          echo "image=${IMAGE}" >> $GITHUB_OUTPUT
+          echo "Using image: ${IMAGE}"
+
+      - name: Patch deployment image
+        working-directory: ./predictive-maintenance
+        run: |
+          echo "Patching k8s/deployment.yaml for EKS deployment..."
+          sed -i "s|image: .*predictive-maintenance-api.*|image: ${{ steps.meta.outputs.image }}|g" k8s/deployment.yaml
+          echo "Resulting deployment.yaml:"
+          cat k8s/deployment.yaml
+
+      - name: Apply manifests to EKS
+        working-directory: ./predictive-maintenance
+        run: |
+          kubectl apply -f k8s/deployment.yaml
+          kubectl apply -f k8s/service.yaml
+
+      - name: Wait for rollout on EKS
+        run: |
+          kubectl rollout status deployment/predictive-maintenance-api --timeout=180s
+          kubectl get pods -l app=predictive-maintenance -o wide
+          kubectl get svc predictive-maintenance-service
