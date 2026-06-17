@@ -1,6 +1,6 @@
 # Predictive Maintenance MLOps Pipeline
 
-A production-ready MLOps project for predicting jet engine failures 30 days in advance using sensor telemetry data. This is a complete end-to-end machine learning system with training, serving, monitoring, and deployment infrastructure.
+A production-ready MLOps project for predicting engine failures 30 days in advance using sensor telemetry data (predictive maintenence). This is a complete end-to-end machine learning system with training, serving, monitoring, and deployment infrastructure.
 
 ## Table of Contents
 - [Features](#features)
